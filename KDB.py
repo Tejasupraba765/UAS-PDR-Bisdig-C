@@ -10,11 +10,11 @@ def get_img_as_base64(file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-# Replace 'nyoba.png' with the path to your PNG file
+# Replace 'sidebar2.png' with the path to your sidebar image
+img_base65 = get_img_as_base64("sidebar2.png")
 img_base64 = get_img_as_base64("BG2.png")
-img_base65 = get_img_as_base64("sidebar1.png")
 
-# Use base64 image data as background
+# Use base64 image data as sidebar background
 page_bg_img = f"""
 <style>
 [data-testid="stAppViewContainer"] {{
@@ -26,20 +26,31 @@ page_bg_img = f"""
     background-color: rgba(0, 0, 0, 0)
 }}
 
-
 [data-testid="stSidebar"] {{
     background-image: url('data:image/png;base64,{img_base65}');
     background-size: cover;
+    color: white; /* Change text color on sidebar */
 }}
-
 </style>
 """
 
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
+# CSS for button animation
+button_animation = """
+<style>
+.stButton>button {
+    transition: all 0.3s ease 0s !important;
+}
+.stButton>button:hover {
+    transform: scale(1.1);
+}
+</style>
+"""
+st.markdown(button_animation, unsafe_allow_html=True)
 
 # Sidebar for navigation
-st.sidebar.title("Navigasi")
+st.sidebar.title("Options")
 page = st.sidebar.radio("Pilih halaman", ["Dashboard", "Kalkulator Diet & Bulking", "Progress Tracker", "Database", "Komunitas"])
 
 # Initialize session state for storing user data and subpage status
@@ -57,15 +68,22 @@ def calculate_age(birth_date):
     today = datetime.today()
     return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
 
+# Function to plot progress data
+def plot_weight_progress(progress_data):
+    df_progress = pd.DataFrame(progress_data)
+    df_progress["Tanggal"] = pd.to_datetime(df_progress["Tanggal"])
+    df_progress = df_progress.sort_values("Tanggal")
+    st.line_chart(df_progress.set_index("Tanggal")["Berat Badan"])
+
 # Dashboard page
 if page == "Dashboard":
-    st.title("Selamat datang di aplikasi saya")
-    st.write("Ini adalah aplikasi untuk menghitung kebutuhan tubuh Anda untuk diet dan bulking.")
+    st.title("Welcome to HealthMate!")
+    st.write("HealthMate adalah aplikasi yang dirancang untuk membantu pengguna mengelola kesehatan dan kebugaran mereka secara efektif. Dengan fitur-fitur interaktif, HealthMate menyediakan alat yang komprehensif untuk perencanaan diet, pemantauan progres, dan keterlibatan komunitas.")
     st.write("Gunakan navigasi di samping untuk berpindah halaman.")
 
     # Kutipan Motivasi
     st.markdown("---")
-    st.subheader("Kutipan Motivasi")
+    st.subheader("Motivation of the Day")
     st.write("“Mulailah hari ini dengan tekad yang baru, dan jadilah orang yang lebih sehat besok.”")
 
     # Fakta Menarik
@@ -186,106 +204,83 @@ if page == "Kalkulator Diet & Bulking":
                 st.write("- Sayuran hijau (bayam, brokoli)")
                 st.write("- Buah-buahan (apel, berries)")
                 st.write("- Ikan tanpa lemak (salmon, tuna)")
-                st.write("- Yogurt rendah lemak")
-            else:  # Bulking
-                st.write("- Daging merah (sapi, ayam)")
-                st.write("- Susu dan produk olahan susu")
-                st.write("- Kacang-kacangan dan biji-bijian")
-                st.write("- Nasi merah atau pasta gandum")
+                st.write("- Kacang-kacangan (almond, kacang tanah)")
+                st.write("- Air putih yang cukup")
+            else:
+                st.write("- Daging tanpa lemak (ayam, daging sapi)")
+                st.write("- Telur")
+                st.write("- Susu dan produk olahannya")
+                st.write("- Nasi merah atau roti gandum")
+                st.write("- Air putih yang cukup")
 
-            st.subheader("Rekomendasi Olahraga Sehat")
+            st.subheader("Rekomendasi Olahraga")
             if user_data['Tujuan'] == "Diet":
-                st.write("- Jogging")
+                st.write("- Jalan cepat atau jogging")
                 st.write("- Bersepeda")
-                st.write("- Yoga")
-                st.write("- Pilates")
-            else:  # Bulking
+                st.write("- Aerobik")
+            else:
                 st.write("- Angkat beban")
-                st.write("- Latihan kekuatan")
-                st.write("- Push-up")
-                st.write("- Pull-up")
+                st.write("- Push-up dan pull-up")
+                st.write("- Latihan kekuatan lainnya")
 
-            st.subheader("Rekomendasi Resep")
-            if user_data['Tujuan'] == "Diet":
-                st.write("- Salad bayam dengan ayam panggang")
-                st.write("- Smoothie buah dengan yogurt rendah lemak")
-                st.write("- Sup sayuran dengan quinoa")
-            else:  # Bulking
-                st.write("- Steak sapi dengan kentang manis")
-                st.write("- Smoothie protein dengan pisang dan susu")
-                st.write("- Omelet dengan sayuran dan keju")
-
-            st.subheader("Rekomendasi Tambahan")
-            st.write("Pastikan Anda mendapatkan cukup serat setiap hari, minum air yang cukup, dan mengonsumsi makanan yang kaya akan vitamin dan mineral. Jangan lupa untuk beristirahat yang cukup dan menjaga keseimbangan hormon dengan pola hidup yang sehat.")
-
-            if st.button("Kembali"):
-                st.session_state.show_result = False
+        # Button to go back to calculator
+        if st.button("Hitung Lagi"):
+            st.session_state.show_result = False
 
 # Progress Tracker page
 if page == "Progress Tracker":
     st.title("Progress Tracker")
-    st.write("Lacak kemajuan diet dan bulking Anda di sini.")
-    
+
+    # User input
     if st.session_state.calculator_data:
         user_data = st.session_state.calculator_data[-1]
-        
-        st.write(f"Nama: {user_data['Nama']}")
-        st.write(f"Umur: {user_data['Umur']} tahun")
-        st.write(f"Tinggi Badan: {user_data['Tinggi Badan']} cm")
-        st.write(f"Berat Badan: {user_data['Berat Badan']} kg")
-        st.write(f"Tujuan: {user_data['Tujuan']}")
+        name = user_data["Nama"]
+        age = user_data["Umur"]
+        gender = user_data["Jenis Kelamin"]
+        height = user_data["Tinggi Badan"]
+        goal = user_data["Tujuan"]
+        weight = st.number_input("Berat Badan Saat Ini (kg)", min_value=0.0, max_value=300.0, step=0.1)
+        date = st.date_input("Tanggal", min_value=datetime(1900, 1, 1), max_value=datetime.today())
 
-        progress_weight = st.number_input("Perubahan Berat Badan (kg)", min_value=-50.0, max_value=50.0, step=0.1)
-        progress_note = st.text_area("Catatan Kemajuan", help="Masukkan catatan kemajuan Anda di sini. Tidak ada auto-correction.")
-        
-        if st.button("Simpan Progress"):
-            st.session_state.progress_data.append({
-                "Nama": user_data["Nama"],
-                "Tanggal Lahir": user_data["Tanggal Lahir"],
-                "Umur": user_data["Umur"],
-                "Tinggi Badan": user_data["Tinggi Badan"],
-                "Berat Badan": user_data["Berat Badan"] + progress_weight,
-                "Tingkat Aktivitas": user_data["Tingkat Aktivitas"],
-                "Tujuan": user_data["Tujuan"],
-                "Kalori": user_data["Kalori"],
-                "Protein": user_data["Protein"],
-                "Karbohidrat": user_data["Karbohidrat"],
-                "Lemak": user_data["Lemak"],
-                "Progress Weight": progress_weight,
-                "Progress Note": progress_note
-            })
-            st.success("Progress berhasil disimpan!")
+        # Button to add progress
+        if st.button("Tambahkan Progress"):
+            if weight and date:
+                st.session_state.progress_data.append({
+                    "Nama": name,
+                    "Umur": age,
+                    "Jenis Kelamin": gender,
+                    "Tinggi Badan": height,
+                    "Tujuan": goal,
+                    "Berat Badan": weight,
+                    "Tanggal": date
+                })
+                st.success("Progress berhasil ditambahkan!")
 
-        # Pengingat Waktu Makan
-        st.markdown("---")
-        st.subheader("Pengingat Waktu Makan")
-        st.write("Waktu Makan: Sarapan - 07:00, Makan Siang - 12:00, Makan Malam - 18:00")
-
-        # Pengingat Aktivitas Fisik
-        st.markdown("---")
-        st.subheader("Pengingat Aktivitas Fisik")
-        st.write("Aktivitas Fisik: Berolahraga ringan selama 30 menit setiap hari.")
-
-# Database page
-if page == "Database":
-    st.title("Database")
-    
-    st.subheader("Database Kalkulator Diet dan Bulking")
-    if st.session_state.calculator_data:
-        df_calculator = pd.DataFrame(st.session_state.calculator_data)
-        st.write(df_calculator)
-
-    st.subheader("Database Progress Tracker")
+    # Display progress data
     if st.session_state.progress_data:
+        st.subheader("Data Progress")
+        plot_weight_progress(st.session_state.progress_data)
         df_progress = pd.DataFrame(st.session_state.progress_data)
         st.write(df_progress)
 
-# Community page
+# Database page
+if page == "Database":
+    st.title("Database Pengguna")
+    st.write("Data pengguna yang telah dimasukkan:")
+
+    # Display user data
+    if st.session_state.calculator_data:
+        df_user = pd.DataFrame(st.session_state.calculator_data)
+        st.write(df_user)
+        csv = df_user.to_csv(index=False)
+        b64 = base64.b64encode(csv.encode()).decode()
+        href = f'<a href="data:file/csv;base64,{b64}" download="data_pengguna.csv">Download CSV File</a>'
+        st.markdown(href, unsafe_allow_html=True)
+
+# Komunitas page
 if page == "Komunitas":
     st.title("Komunitas")
-    st.write("Bergabunglah dengan komunitas untuk berbagi tips, cerita sukses, dan saling mendukung.")
-    
-    st.subheader("Forum Diskusi")
-    st.text_area("Tulis pesan Anda di sini...")
-    if st.button("Kirim"):
-        st.success("Pesan terkirim!")
+    st.write("Bergabunglah dengan komunitas kami untuk berbagi tips dan pengalaman!")
+    st.write("- Forum diskusi")
+    st.write("- Leaderboard")
+    st.write("- Chatroom")
